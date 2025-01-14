@@ -1,0 +1,6 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/**/*.jar",
+        "d:\\Github\\eSIGELEC_wOrk\\javaWork\\mysql-connector-j-9.1.0\\mysql-connector-j-9.1.0\\mysql-connector-j-9.1.0.jar"
+    ]
+}
