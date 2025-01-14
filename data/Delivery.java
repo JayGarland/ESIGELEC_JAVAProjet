@@ -6,6 +6,7 @@ import java.util.Date;
 public class Delivery {
     private int id;
     private int customerId;
+    private int driverId;
     private Date deliveryDate;
     private String deliveryAddress;
     private Timestamp createdAt;
@@ -15,10 +16,11 @@ public class Delivery {
 
     }
 
-    public Delivery(int customerId, Date deliveryDate, String deliveryAddress) {
+    public Delivery(int customerId, Date deliveryDate, String deliveryAddress, int driverId) {
         this.customerId = customerId;
         this.deliveryDate = deliveryDate;
         this.deliveryAddress = deliveryAddress;
+        this.driverId = driverId;
     }
 
     public int getId() {
@@ -35,6 +37,14 @@ public class Delivery {
 
     public void setCustomerId(int customerId) {
         this.customerId = customerId;
+    }
+
+    public int getDriverId() {
+        return driverId;
+    }
+
+    public void setDriverId(int driverId) {
+        this.driverId = driverId;
     }
 
     public Date getDeliveryDate() {
