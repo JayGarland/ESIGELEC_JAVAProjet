@@ -22,11 +22,11 @@ public class Driver extends User {
         this.truckRegNumber = truckRegNumber;
     }
 
-    public Integer getTruckCapacityKg() {
+    public int getTruckCapacityKg() {
         return truckCapacityKg;
     }
 
-    public void setTruckCapacityKg(Integer truckCapacityKg) {
+    public void setTruckCapacityKg(int truckCapacityKg) {
         this.truckCapacityKg = truckCapacityKg;
     }
 }
