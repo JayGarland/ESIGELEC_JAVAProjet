@@ -11,14 +11,14 @@ import authentication.User;
 import authentication.UserRole;
 
 public class DatabaseManager {
-    private static final String DB_URL = "jdbc:MySQL://localhost:3306/";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/goodsdelivery";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "root";
     private static DatabaseManager instance;
 
     private DatabaseManager() {
         try {
-            Class.forName("come.mysql.cj.jdbc.Driver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
             System.err.println("MySQL JDBC driver not found");
@@ -84,6 +84,7 @@ public class DatabaseManager {
                 break;
             case SCHEDULER:
                 user = new Scheduler(email, password, phoneNumber);
+                break;
             case DRIVER:
                 String truckRegNumber = rs.getString("truck_reg_number");
                 int truckCapacityKg = rs.getInt("truck_capacity_kg");
@@ -177,12 +178,14 @@ public class DatabaseManager {
         return false;
     }
 
-    public List<Mission> getMissionsByDriverId(int driverId) {
+    // Method to get Missions for a specific driver and status
+    public List<Mission> getMissionsByDriverId(int driverId, String status) {
         List<Mission> missions = new ArrayList<>();
         String sql = "SELECT * FROM missions WHERE driver_id = ? AND status = ?";
-        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, driverId);
-            pstmt.setString(2, "pending");
+            pstmt.setString(2, status);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 Mission mission = createMissionFromResultSet(rs);
@@ -190,7 +193,7 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            System.err.println("Error retrieving missions by driver ID");
+            System.err.println("Error getting mission by driver and status");
         }
         return missions;
     }
@@ -206,6 +209,30 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
             System.err.println("Error updating mission");
+        }
+        return false;
+    }
+
+    // Method to add a new Product to the database
+    public boolean addProduct(Product product) {
+        String sql = "INSERT INTO products (name, weight_kg, price_per_kg, category_id) VALUES (?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, product.getName());
+            pstmt.setDouble(2, product.getWeightKg());
+            pstmt.setDouble(3, product.getPricePerKg());
+            pstmt.setInt(4, product.getCategoryId());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    product.setId(generatedKeys.getInt(1));
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error adding product");
         }
         return false;
     }
@@ -243,18 +270,23 @@ public class DatabaseManager {
     }
 
     // Method to add a new Delivery to the database
-    public boolean addDelivery(Delivery delivery) {
-        String sql = "INSERT INTO deliveries (customer_id, delivery_date, delivery_address) VALUES (?, ?, ?)";
+    public boolean addDelivery(Delivery delivery, List<ProductItem> items) {
+        String sql = "INSERT INTO deliveries (customer_id, delivery_date, delivery_address, driver_id) VALUES (?, ?, ?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setInt(1, delivery.getCustomerId());
             pstmt.setDate(2, new java.sql.Date(delivery.getDeliveryDate().getTime()));
             pstmt.setString(3, delivery.getDeliveryAddress());
+            pstmt.setInt(4, delivery.getDriverId());
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 ResultSet generatedKeys = pstmt.getGeneratedKeys();
                 if (generatedKeys.next()) {
-                    delivery.setId(generatedKeys.getInt(1));
+                    int deliveryId = generatedKeys.getInt(1);
+                    delivery.setId(deliveryId);
+                    if (!addDeliveryItems(deliveryId, items)) {
+                        throw new SQLException("Error adding delivery items for delivery: " + deliveryId);
+                    }
                     return true;
                 }
             }
@@ -263,6 +295,247 @@ public class DatabaseManager {
             System.err.println("Error adding delivery");
         }
         return false;
+    }
+
+    // Method to add delivery items to the database
+    private boolean addDeliveryItems(int deliveryId, List<ProductItem> items) {
+        String sql = "INSERT INTO delivery_items (delivery_id, product_id, quantity_kg) VALUES (?, ?, ?)";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            for (ProductItem item : items) {
+                pstmt.setInt(1, deliveryId);
+                pstmt.setInt(2, item.getProduct().getId());
+                pstmt.setDouble(3, item.getQuantity());
+                pstmt.addBatch();
+            }
+            int[] affectedRows = pstmt.executeBatch();
+            for (int rows : affectedRows) {
+                if (rows <= 0) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error adding delivery items");
+        }
+        return false;
+    }
+
+    // Method to get all items from a delivery
+    public List<ProductItem> getDeliveryItems(int deliveryId) {
+        List<ProductItem> items = new ArrayList<>();
+        String sql = "SELECT product_id, quantity_kg from delivery_items WHERE delivery_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, deliveryId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                int productId = rs.getInt("product_id");
+                double quantity = rs.getDouble("quantity_kg");
+                Product product = getProductById(productId);
+                items.add(new ProductItem(product, quantity));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error getting delivery items");
+        }
+        return items;
+    }
+
+    // Method to check if delivery item exists in the database
+    public boolean deliveryItemExists(int deliveryId, int productId) {
+        String sql = "SELECT COUNT(*) FROM delivery_items WHERE delivery_id = ? AND product_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, deliveryId);
+            pstmt.setInt(2, productId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error checking if delivery item exists");
+        }
+        return false;
+    }
+
+    // Method to update an existing item in the delivery_items table
+    public boolean updateDeliveryItem(int deliveryId, int productId, double quantityKg) {
+        String sql = "UPDATE delivery_items SET quantity_kg = ? WHERE delivery_id = ? AND product_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setDouble(1, quantityKg);
+            pstmt.setInt(2, deliveryId);
+            pstmt.setInt(3, productId);
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error updating delivery item");
+        }
+        return false;
+    }
+
+    public List<Delivery> getAllDeliveries() {
+        List<Delivery> deliveries = new ArrayList<>();
+        String sql = "SELECT * FROM deliveries";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+                ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                Delivery delivery = createDeliveryFromResultSet(rs);
+                deliveries.add(delivery);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error retrieving all deliveries");
+        }
+        return deliveries;
+    }
+
+    public Delivery getDeliveryById(int id) {
+        String sql = "SELECT * FROM deliveries WHERE id = ?";
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return createDeliveryFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error retrieving delivery by ID");
+        }
+        return null;
+    }
+
+    // Method to add a new Category to the database
+    public boolean addCategory(Category category) {
+        String sql = "INSERT INTO categories (name) VALUES (?)";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, category.getName());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                ResultSet generatedKeys = pstmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    category.setId(generatedKeys.getInt(1));
+                    return true;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error adding category");
+        }
+        return false;
+    }
+
+    // Method to get a Category from the database by id
+    public Category getCategoryById(int id) {
+        String sql = "SELECT * FROM categories WHERE id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return createCategoryFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error getting category by id");
+        }
+        return null;
+    }
+
+    // Method to get Stock by productId
+    public Stock getStockByProductId(int productId) {
+        String sql = "SELECT * FROM stock WHERE product_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, productId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return createStockFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error getting stock by product id");
+        }
+        return null;
+    }
+
+    // Method to add a new Stock to the database
+    public boolean addStock(Stock stock) {
+        String sql = "INSERT INTO stock (product_id, quantity_kg) VALUES (?, ?)";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, stock.getProductId());
+            pstmt.setDouble(2, stock.getQuantityKg());
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error adding stock");
+        }
+        return false;
+    }
+
+    // Method to update an existing Stock in the database
+    public boolean updateStock(Stock stock) {
+        String sql = "UPDATE stock SET quantity_kg = ? WHERE product_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setDouble(1, stock.getQuantityKg());
+            pstmt.setInt(2, stock.getProductId());
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error updating stock");
+        }
+        return false;
+    }
+
+    // Helper method to create a Stock object from a ResultSet
+    private Stock createStockFromResultSet(ResultSet rs) throws SQLException {
+        int productId = rs.getInt("product_id");
+        double quantityKg = rs.getDouble("quantity_kg");
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        Stock stock = new Stock(productId, quantityKg);
+        stock.setCreatedAt(createdAt);
+        stock.setUpdatedAt(updatedAt);
+        return stock;
+    }
+
+    // Helper method to create a Delivery object from a ResultSet
+    private Delivery createDeliveryFromResultSet(ResultSet rs) throws SQLException {
+        int id = rs.getInt("id");
+        int customerId = rs.getInt("customer_id");
+        Date deliveryDate = rs.getDate("delivery_date");
+        String deliveryAddress = rs.getString("delivery_address");
+        int driverId = rs.getInt("driver_id");
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        Delivery delivery = new Delivery(customerId, deliveryDate, deliveryAddress, driverId);
+        delivery.setId(id);
+        delivery.setCreatedAt(createdAt);
+        delivery.setUpdatedAt(updatedAt);
+        return delivery;
+    }
+
+    // Helper method to create a Category object from a ResultSet
+    private Category createCategoryFromResultSet(ResultSet rs) throws SQLException {
+        int id = rs.getInt("id");
+        String name = rs.getString("name");
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        Timestamp updatedAt = rs.getTimestamp("updated_at");
+        Category category = new Category(name);
+        category.setId(id);
+        category.setCreatedAt(createdAt);
+        category.setUpdatedAt(updatedAt);
+        return category;
     }
 
     // Helper method to create a Product object from a ResultSet
