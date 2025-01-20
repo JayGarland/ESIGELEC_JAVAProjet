@@ -2,6 +2,7 @@ package data;
 
 import java.sql.Timestamp;
 
+//mission is created and assign to driver by scheduler
 public class Mission {
     private int id;
     private int driverId;

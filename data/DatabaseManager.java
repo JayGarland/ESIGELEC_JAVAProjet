@@ -215,12 +215,11 @@ public class DatabaseManager {
 
     // Method to add a new Product to the database
     public boolean addProduct(Product product) {
-        String sql = "INSERT INTO products (name, weight_kg, price_per_kg, category_id) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO products (name, weight_kg, category_id) VALUES (?, ?, ?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, product.getName());
             pstmt.setDouble(2, product.getWeightKg());
-            pstmt.setDouble(3, product.getPricePerKg());
             pstmt.setInt(4, product.getCategoryId());
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
@@ -543,11 +542,10 @@ public class DatabaseManager {
         int id = rs.getInt("id");
         String name = rs.getString("name");
         double weightKg = rs.getDouble("weight_kg");
-        double pricePerKg = rs.getDouble("price_per_kg");
         int categoryId = rs.getInt("category_id");
         Timestamp createdAt = rs.getTimestamp("created_at");
         Timestamp updatedAt = rs.getTimestamp("updated_at");
-        Product product = new Product(name, weightKg, pricePerKg, categoryId);
+        Product product = new Product(name, weightKg, categoryId);
         product.setId(id);
         product.setCreatedAt(createdAt);
         product.setUpdatedAt(updatedAt);

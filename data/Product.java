@@ -6,7 +6,6 @@ public class Product {
     private int id;
     private String name;
     private double weightKg;
-    private double pricePerKg;
     private int categoryId;
     private Timestamp createdAt;
     private Timestamp updatedAt;
@@ -14,10 +13,9 @@ public class Product {
     public Product() {
     }
 
-    public Product(String name, double weightKg, double pricePerKg, int categoryId) {
+    public Product(String name, double weightKg, int categoryId) {
         this.name = name;
         this.weightKg = weightKg;
-        this.pricePerKg = pricePerKg;
         this.categoryId = categoryId;
     }
 
@@ -43,14 +41,6 @@ public class Product {
 
     public void setWeightKg(double weightKg) {
         this.weightKg = weightKg;
-    }
-
-    public double getPricePerKg() {
-        return pricePerKg;
-    }
-
-    public void setPricePerKg(double pricePerKg) {
-        this.pricePerKg = pricePerKg;
     }
 
     public int getCategoryId() {
