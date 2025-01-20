@@ -209,6 +209,27 @@ public class DatabaseManager {
         return missions;
     }
 
+    // Method to get Missions by id
+    public Mission getMissionById(int missionId) {
+        String sql = "SELECT m.*, u.id as user_id, u.email, u.password, u.phone_number, u.role, u.truck_reg_number, u.truck_capacity_kg "
+                +
+                "FROM missions m " +
+                "INNER JOIN users u ON m.driver_id = u.id " +
+                "WHERE m.id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, missionId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return createMissionFromResultSet(rs);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error getting mission by id");
+        }
+        return null;
+    }
+
     // Helper method to create a Mission object from a ResultSet
     private Mission createMissionFromResultSet(ResultSet rs) throws SQLException {
         Mission mission = new Mission();
@@ -239,11 +260,15 @@ public class DatabaseManager {
     }
 
     public boolean updateMission(Mission mission) {
-        String sql = "UPDATE missions SET status = ?, time_completed = ? WHERE id = ?";
+        String sql = "UPDATE missions SET driver_id = ?, route = ?, status = ?, time_completed = ? WHERE id = ?";
         try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, mission.getStatus());
-            pstmt.setTimestamp(2, mission.getTimeCompleted());
-            pstmt.setInt(3, mission.getId());
+            pstmt.setInt(1, mission.getDriver().getId());
+            // Convert the List<String> route to a comma separated String for database
+            // storage
+            pstmt.setString(2, String.join(",", mission.getRoute()));
+            pstmt.setString(3, mission.getStatus());
+            pstmt.setTimestamp(4, mission.getTimeCompleted());
+            pstmt.setInt(5, mission.getId());
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
@@ -255,12 +280,12 @@ public class DatabaseManager {
 
     // Method to add a new Product to the database
     public boolean addProduct(Product product) {
-        String sql = "INSERT INTO products (name, weight_kg, category_id) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO products (name, weight_kg, category_id) VALUES (?, ?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             pstmt.setString(1, product.getName());
             pstmt.setDouble(2, product.getWeightKg());
-            pstmt.setInt(4, product.getCategoryId());
+            pstmt.setInt(3, product.getCategoryId());
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 ResultSet generatedKeys = pstmt.getGeneratedKeys();
