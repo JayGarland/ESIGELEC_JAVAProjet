@@ -1,12 +1,13 @@
 package data;
 
+import authentication.Driver;
 import java.sql.Timestamp;
+import java.util.List;
 
-//mission is created and assign to driver by scheduler
 public class Mission {
     private int id;
-    private int driverId;
-    private String route;
+    private Driver driver; // Changed from driverId to Driver object
+    private List<String> route; // Changed from String to List<String>
     private String status;
     private Timestamp timeCompleted;
     private Timestamp createdAt;
@@ -23,19 +24,19 @@ public class Mission {
         this.id = id;
     }
 
-    public int getDriverId() {
-        return driverId;
+    public Driver getDriver() {
+        return driver;
     }
 
-    public void setDriverId(int driverId) {
-        this.driverId = driverId;
+    public void setDriver(Driver driver) {
+        this.driver = driver;
     }
 
-    public String getRoute() {
+    public List<String> getRoute() {
         return route;
     }
 
-    public void setRoute(String route) {
+    public void setRoute(List<String> route) {
         this.route = route;
     }
 

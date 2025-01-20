@@ -2,6 +2,7 @@ package data;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import authentication.Customer;
@@ -155,14 +156,20 @@ public class DatabaseManager {
         return false;
     }
 
+    // Method to add a new mission to the database
     public boolean addMission(Mission mission) {
         String sql = "INSERT INTO missions (driver_id, route, status, time_completed) VALUES (?, ?, ?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            pstmt.setInt(1, mission.getDriverId());
-            pstmt.setString(2, mission.getRoute());
+
+            // Get the driver's id from the Driver object
+            pstmt.setInt(1, mission.getDriver().getId());
+            // Convert the List<String> route to a comma separated String for database
+            // storage
+            pstmt.setString(2, String.join(",", mission.getRoute()));
             pstmt.setString(3, mission.getStatus());
             pstmt.setTimestamp(4, mission.getTimeCompleted());
+
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 ResultSet generatedKeys = pstmt.getGeneratedKeys();
@@ -181,7 +188,11 @@ public class DatabaseManager {
     // Method to get Missions for a specific driver and status
     public List<Mission> getMissionsByDriverId(int driverId, String status) {
         List<Mission> missions = new ArrayList<>();
-        String sql = "SELECT * FROM missions WHERE driver_id = ? AND status = ?";
+        String sql = "SELECT m.*, u.id as user_id, u.email, u.password, u.phone_number, u.role, u.truck_reg_number, u.truck_capacity_kg "
+                +
+                "FROM missions m " +
+                "INNER JOIN users u ON m.driver_id = u.id " +
+                "WHERE m.driver_id = ? AND m.status = ?";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, driverId);
@@ -196,6 +207,35 @@ public class DatabaseManager {
             System.err.println("Error getting mission by driver and status");
         }
         return missions;
+    }
+
+    // Helper method to create a Mission object from a ResultSet
+    private Mission createMissionFromResultSet(ResultSet rs) throws SQLException {
+        Mission mission = new Mission();
+        mission.setId(rs.getInt("id"));
+
+        // Create Driver object from the joined user data
+        Driver driver = new Driver();
+        driver.setId(rs.getInt("user_id"));
+        driver.setEmail(rs.getString("email"));
+        driver.setPassword(rs.getString("password"));
+        driver.setPhoneNumber(rs.getString("phone_number"));
+        driver.setTruckRegNumber(rs.getString("truck_reg_number"));
+        driver.setTruckCapacityKg(rs.getInt("truck_capacity_kg"));
+        mission.setDriver(driver);
+
+        // Convert comma separated String route to List<String>
+        String routeString = rs.getString("route");
+        if (routeString != null) {
+            mission.setRoute(Arrays.asList(routeString.split(",")));
+        }
+
+        mission.setStatus(rs.getString("status"));
+        mission.setTimeCompleted(rs.getTimestamp("time_completed"));
+        mission.setCreatedAt(rs.getTimestamp("created_at"));
+        mission.setUpdatedAt(rs.getTimestamp("updated_at"));
+
+        return mission;
     }
 
     public boolean updateMission(Mission mission) {
@@ -550,25 +590,5 @@ public class DatabaseManager {
         product.setCreatedAt(createdAt);
         product.setUpdatedAt(updatedAt);
         return product;
-    }
-
-    // Helper method to create a Mission object from a ResultSet
-    private Mission createMissionFromResultSet(ResultSet rs) throws SQLException {
-        int id = rs.getInt("id");
-        int driverId = rs.getInt("driver_id");
-        String route = rs.getString("route");
-        String status = rs.getString("status");
-        Timestamp timeCompleted = rs.getTimestamp("time_completed");
-        Timestamp createdAt = rs.getTimestamp("created_at");
-        Timestamp updatedAt = rs.getTimestamp("updated_at");
-        Mission mission = new Mission();
-        mission.setId(id);
-        mission.setDriverId(driverId);
-        mission.setRoute(route);
-        mission.setStatus(status);
-        mission.setTimeCompleted(timeCompleted);
-        mission.setCreatedAt(createdAt);
-        mission.setUpdatedAt(updatedAt);
-        return mission;
     }
 }
