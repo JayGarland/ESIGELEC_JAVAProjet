@@ -25,13 +25,18 @@ public class CustomerService {
         }
     }
 
+    // Method to get a category by id
+    public Category getCategoryById(int id) {
+        return databaseManager.getCategoryById(id);
+    }
+
     private void updateStock(List<ProductItem> items) {
         for (ProductItem item : items) {
             Stock stock = databaseManager.getStockByProductId(item.getProduct().getId());
             if (stock != null) {
-                double newQuantity = stock.getQuantityKg() - item.getQuantity();
+                double newQuantity = stock.getweight() - item.getWeight();
                 if (newQuantity >= 0) {
-                    stock.setQuantityKg(newQuantity);
+                    stock.setweight(newQuantity);
                     boolean stockUpdated = databaseManager.updateStock(stock);
                     if (stockUpdated) {
                         System.out.println("Stock updated for product: " + item.getProduct().getName());
@@ -40,7 +45,7 @@ public class CustomerService {
                     }
                 } else {
                     System.err.println("Not enough stock for product: " + item.getProduct().getName() + " Available: "
-                            + stock.getQuantityKg() + " Requested: " + item.getQuantity());
+                            + stock.getweight() + " Requested: " + item.getWeight());
                 }
             } else {
                 System.err.println("Stock not found for product: " + item.getProduct().getName());
@@ -54,5 +59,13 @@ public class CustomerService {
 
     public Product getProductById(int id) {
         return databaseManager.getProductById(id);
+    }
+
+    public boolean checkStock(int productId, double quantity) {
+        Stock stock = databaseManager.getStockByProductId(productId);
+        if (stock != null) {
+            return stock.getweight() >= quantity;
+        }
+        return false;
     }
 }

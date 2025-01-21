@@ -2,18 +2,18 @@ package data;
 
 public class ProductItem {
     private Product product;
-    private double quantity;
+    private double weight;
 
-    public ProductItem(Product product, double quantity) {
+    public ProductItem(Product product, double weight) {
         this.product = product;
-        this.quantity = quantity;
+        this.weight = weight;
     }
 
     public Product getProduct() {
         return product;
     }
 
-    public double getQuantity() {
-        return quantity;
+    public double getWeight() {
+        return weight;
     }
 }

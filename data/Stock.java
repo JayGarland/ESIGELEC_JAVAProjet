@@ -4,16 +4,16 @@ import java.sql.Timestamp;
 
 public class Stock {
     private int productId;
-    private double quantityKg;
+    private double weight;
     private Timestamp createdAt;
     private Timestamp updatedAt;
 
     public Stock() {
     }
 
-    public Stock(int productId, double quantityKg) {
+    public Stock(int productId, double weight) {
         this.productId = productId;
-        this.quantityKg = quantityKg;
+        this.weight = weight;
     }
 
     public int getProductId() {
@@ -24,12 +24,12 @@ public class Stock {
         this.productId = productId;
     }
 
-    public double getQuantityKg() {
-        return quantityKg;
+    public double getweight() {
+        return weight;
     }
 
-    public void setQuantityKg(double quantityKg) {
-        this.quantityKg = quantityKg;
+    public void setweight(double weight) {
+        this.weight = weight;
     }
 
     public Timestamp getCreatedAt() {

@@ -363,13 +363,13 @@ public class DatabaseManager {
 
     // Method to add delivery items to the database
     private boolean addDeliveryItems(int deliveryId, List<ProductItem> items) {
-        String sql = "INSERT INTO delivery_items (delivery_id, product_id, quantity_kg) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO delivery_items (delivery_id, product_id, weight_kg) VALUES (?, ?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             for (ProductItem item : items) {
                 pstmt.setInt(1, deliveryId);
                 pstmt.setInt(2, item.getProduct().getId());
-                pstmt.setDouble(3, item.getQuantity());
+                pstmt.setDouble(3, item.getWeight());
                 pstmt.addBatch();
             }
             int[] affectedRows = pstmt.executeBatch();
@@ -389,14 +389,14 @@ public class DatabaseManager {
     // Method to get all items from a delivery
     public List<ProductItem> getDeliveryItems(int deliveryId) {
         List<ProductItem> items = new ArrayList<>();
-        String sql = "SELECT product_id, quantity_kg from delivery_items WHERE delivery_id = ?";
+        String sql = "SELECT product_id, weight_kg from delivery_items WHERE delivery_id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, deliveryId);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 int productId = rs.getInt("product_id");
-                double quantity = rs.getDouble("quantity_kg");
+                double quantity = rs.getDouble("weight_kg");
                 Product product = getProductById(productId);
                 items.add(new ProductItem(product, quantity));
             }
@@ -426,11 +426,11 @@ public class DatabaseManager {
     }
 
     // Method to update an existing item in the delivery_items table
-    public boolean updateDeliveryItem(int deliveryId, int productId, double quantityKg) {
-        String sql = "UPDATE delivery_items SET quantity_kg = ? WHERE delivery_id = ? AND product_id = ?";
+    public boolean updateDeliveryItem(int deliveryId, int productId, double weight) {
+        String sql = "UPDATE delivery_items SET weight_kg = ? WHERE delivery_id = ? AND product_id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setDouble(1, quantityKg);
+            pstmt.setDouble(1, weight);
             pstmt.setInt(2, deliveryId);
             pstmt.setInt(3, productId);
             int affectedRows = pstmt.executeUpdate();
@@ -531,11 +531,11 @@ public class DatabaseManager {
 
     // Method to add a new Stock to the database
     public boolean addStock(Stock stock) {
-        String sql = "INSERT INTO stock (product_id, quantity_kg) VALUES (?, ?)";
+        String sql = "INSERT INTO stock (product_id, weight_kg) VALUES (?, ?)";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, stock.getProductId());
-            pstmt.setDouble(2, stock.getQuantityKg());
+            pstmt.setDouble(2, stock.getweight());
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
@@ -547,10 +547,10 @@ public class DatabaseManager {
 
     // Method to update an existing Stock in the database
     public boolean updateStock(Stock stock) {
-        String sql = "UPDATE stock SET quantity_kg = ? WHERE product_id = ?";
+        String sql = "UPDATE stock SET weight_kg = ? WHERE product_id = ?";
         try (Connection conn = getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setDouble(1, stock.getQuantityKg());
+            pstmt.setDouble(1, stock.getweight());
             pstmt.setInt(2, stock.getProductId());
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
@@ -564,10 +564,10 @@ public class DatabaseManager {
     // Helper method to create a Stock object from a ResultSet
     private Stock createStockFromResultSet(ResultSet rs) throws SQLException {
         int productId = rs.getInt("product_id");
-        double quantityKg = rs.getDouble("quantity_kg");
+        double weight = rs.getDouble("weight_kg");
         Timestamp createdAt = rs.getTimestamp("created_at");
         Timestamp updatedAt = rs.getTimestamp("updated_at");
-        Stock stock = new Stock(productId, quantityKg);
+        Stock stock = new Stock(productId, weight);
         stock.setCreatedAt(createdAt);
         stock.setUpdatedAt(updatedAt);
         return stock;
