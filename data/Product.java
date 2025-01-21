@@ -51,6 +51,16 @@ public class Product {
         this.categoryId = categoryId;
     }
 
+    public double getStock() {
+        DatabaseManager dbManager = DatabaseManager.getInstance();
+        Stock stock = dbManager.getStockByProductId(this.id);
+        if (stock != null) {
+            return stock.getweight();
+        }
+        // throw an exception where stock is not found
+        return 0;
+    }
+
     public Timestamp getCreatedAt() {
         return createdAt;
     }
