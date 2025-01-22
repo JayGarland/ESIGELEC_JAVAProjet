@@ -333,7 +333,6 @@ public class DatabaseManager {
         return null;
     }
 
-    // Method to add a new Delivery to the database
     public boolean addDelivery(Delivery delivery, List<ProductItem> items) {
         String sql = "INSERT INTO deliveries (customer_id, delivery_date, delivery_address, driver_id) VALUES (?, ?, ?, ?)";
         try (Connection conn = getConnection();
@@ -341,7 +340,12 @@ public class DatabaseManager {
             pstmt.setInt(1, delivery.getCustomerId());
             pstmt.setDate(2, new java.sql.Date(delivery.getDeliveryDate().getTime()));
             pstmt.setString(3, delivery.getDeliveryAddress());
-            pstmt.setInt(4, delivery.getDriverId());
+            if (delivery.getDriverId() == 0) {
+                pstmt.setNull(4, java.sql.Types.INTEGER);
+            } else {
+                pstmt.setInt(4, delivery.getDriverId());
+            }
+
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
                 ResultSet generatedKeys = pstmt.getGeneratedKeys();
@@ -396,9 +400,9 @@ public class DatabaseManager {
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 int productId = rs.getInt("product_id");
-                double quantity = rs.getDouble("weight_kg");
+                double weightkg = rs.getDouble("weight_kg");
                 Product product = getProductById(productId);
-                items.add(new ProductItem(product, quantity));
+                items.add(new ProductItem(product, weightkg));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -425,19 +429,16 @@ public class DatabaseManager {
         return false;
     }
 
-    // Method to update an existing item in the delivery_items table
-    public boolean updateDeliveryItem(int deliveryId, int productId, double weight) {
-        String sql = "UPDATE delivery_items SET weight_kg = ? WHERE delivery_id = ? AND product_id = ?";
-        try (Connection conn = getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setDouble(1, weight);
-            pstmt.setInt(2, deliveryId);
-            pstmt.setInt(3, productId);
+    public boolean updateDelivery(Delivery delivery) {
+        String sql = "UPDATE deliveries SET driver_id = ? WHERE id = ?";
+        try (Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, delivery.getDriverId());
+            pstmt.setInt(2, delivery.getId());
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
             e.printStackTrace();
-            System.err.println("Error updating delivery item");
+            System.err.println("Error updating delivery");
         }
         return false;
     }
@@ -455,6 +456,24 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
             System.err.println("Error retrieving all deliveries");
+        }
+        return deliveries;
+    }
+
+    public List<Delivery> getDeliveriesByDriverId(int driverId) {
+        List<Delivery> deliveries = new ArrayList<>();
+        String sql = "SELECT * FROM deliveries WHERE driver_id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, driverId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Delivery delivery = createDeliveryFromResultSet(rs);
+                deliveries.add(delivery);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error retrieving deliveries by driver id");
         }
         return deliveries;
     }
@@ -561,6 +580,23 @@ public class DatabaseManager {
         return false;
     }
 
+    public List<Driver> getAllDrivers() {
+        List<Driver> drivers = new ArrayList<>();
+        String sql = "SELECT * FROM users WHERE role = 'driver'";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+                ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                Driver driver = (Driver) createUserFromResultSet(rs);
+                drivers.add(driver);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error retrieving all drivers");
+        }
+        return drivers;
+    }
+
     // Helper method to create a Stock object from a ResultSet
     private Stock createStockFromResultSet(ResultSet rs) throws SQLException {
         int productId = rs.getInt("product_id");
@@ -583,6 +619,10 @@ public class DatabaseManager {
         Timestamp createdAt = rs.getTimestamp("created_at");
         Timestamp updatedAt = rs.getTimestamp("updated_at");
         Delivery delivery = new Delivery(customerId, deliveryDate, deliveryAddress, driverId);
+        if (driverId > 0) {
+            Driver driver = (Driver) getUserById(driverId);
+            delivery.setDriverId(driver.getId());
+        }
         delivery.setId(id);
         delivery.setCreatedAt(createdAt);
         delivery.setUpdatedAt(updatedAt);
