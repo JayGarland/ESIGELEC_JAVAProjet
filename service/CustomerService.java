@@ -34,9 +34,9 @@ public class CustomerService {
         for (ProductItem item : items) {
             Stock stock = databaseManager.getStockByProductId(item.getProduct().getId());
             if (stock != null) {
-                double newQuantity = stock.getweight() - item.getWeight();
-                if (newQuantity >= 0) {
-                    stock.setweight(newQuantity);
+                double newWeight = stock.getweight() - item.getWeight();
+                if (newWeight >= 0) {
+                    stock.setweight(newWeight);
                     boolean stockUpdated = databaseManager.updateStock(stock);
                     if (stockUpdated) {
                         System.out.println("Stock updated for product: " + item.getProduct().getName());
@@ -61,10 +61,10 @@ public class CustomerService {
         return databaseManager.getProductById(id);
     }
 
-    public boolean checkStock(int productId, double quantity) {
+    public boolean checkStock(int productId, double weight) {
         Stock stock = databaseManager.getStockByProductId(productId);
         if (stock != null) {
-            return stock.getweight() >= quantity;
+            return stock.getweight() >= weight;
         }
         return false;
     }
