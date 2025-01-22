@@ -164,11 +164,24 @@ public class CustomerUI extends JFrame {
                     GuiUtil.showErrorMessage(this, "Not enough stock for product: " + selectedProduct.getName());
                     return;
                 }
-                ProductItem item = new ProductItem(selectedProduct, quantity * selectedProduct.getWeightKg());
-                cart.add(item);
-                totalWeight += (selectedProduct.getWeightKg() * quantity);
+
+                boolean itemFound = false;
+                for (ProductItem item : cart) {
+                    if (item.getProduct().getId() == selectedProduct.getId()) {
+                        item.setWeight(item.getWeight() + (quantity * selectedProduct.getWeightKg()));
+                        totalWeight += (quantity * selectedProduct.getWeightKg());
+                        itemFound = true;
+                        break;
+                    }
+                }
+                if (!itemFound) {
+                    ProductItem item = new ProductItem(selectedProduct, quantity * selectedProduct.getWeightKg());
+                    cart.add(item);
+                    totalWeight += (quantity * selectedProduct.getWeightKg());
+                }
                 totalWeightLabel.setText("Total Weight: " + String.format("%.2f", totalWeight) + " Kg");
                 GuiUtil.showInfoMessage(this, "Product added to cart");
+
             }
         } else {
             GuiUtil.showErrorMessage(this, "Please select a product to add to the cart.");
@@ -201,7 +214,7 @@ public class CustomerUI extends JFrame {
 
         try {
             customerService.createDelivery(
-                    customer, cart, deliveryDate, deliveryAddress, 3); // TODO: Remove hardcoded driver ID
+                    customer, cart, deliveryDate, deliveryAddress, 0);
             GuiUtil.showInfoMessage(this, "Delivery order created successfully!");
             cart.clear();
             totalWeight = 0.0;
