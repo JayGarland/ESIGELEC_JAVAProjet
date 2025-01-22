@@ -1,10 +1,12 @@
 package service;
 
 import authentication.Driver;
+import authentication.User;
 import data.DatabaseManager;
 import data.Delivery;
 import data.Mission;
 import utils.ReportGenerator;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -48,13 +50,14 @@ public class SchedulerService {
         return null;
     }
 
-    public boolean assignDriverToDelivery(int deliveryId, int driverId) {
+    public Delivery assignDriverToDelivery(int deliveryId, int driverId) {
         Delivery delivery = databaseManager.getDeliveryById(deliveryId);
         if (delivery != null) {
             delivery.setDriverId(driverId);
-            return databaseManager.updateDelivery(delivery);
+            databaseManager.updateDelivery(delivery);
+            return delivery;
         }
-        return false;
+        return null;
     }
 
     public boolean generateReport(Date date) {
@@ -63,5 +66,36 @@ public class SchedulerService {
             return reportGenerator.generateWordReport(date, deliveries);
         }
         return false;
+    }
+
+    public Mission createMission(List<Delivery> deliveries, Driver driver) {
+        if (deliveries == null || deliveries.isEmpty() || driver == null) {
+            return null;
+        }
+        Mission mission = new Mission();
+        mission.setDriver(driver);
+        List<String> route = new ArrayList<>();
+        route.add("Warehouse");
+        for (Delivery delivery : deliveries) {
+            route.add(delivery.getDeliveryAddress());
+        }
+        route.add("Warehouse");
+        mission.setRoute(route);
+        mission.setStatus("Assigned");
+
+        boolean created = databaseManager.addMission(mission);
+        if (created) {
+            return mission;
+        }
+        return null;
+
+    }
+
+    public User getUserById(int id) {
+        return databaseManager.getUserById(id);
+    }
+
+    public Delivery getDeliveryById(int id) {
+        return databaseManager.getDeliveryById(id);
     }
 }

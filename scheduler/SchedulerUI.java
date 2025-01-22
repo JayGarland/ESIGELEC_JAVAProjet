@@ -8,12 +8,14 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.DateFormatter;
 
+//TODO: after scheduled deliveries to mission, the scheduled ones will disappear
 public class SchedulerUI extends JFrame {
 
     private JTabbedPane tabbedPane;
@@ -25,6 +27,7 @@ public class SchedulerUI extends JFrame {
     private JButton assignDriverButton;
     private JFormattedTextField reportDateField;
     private JButton generateReportButton;
+    private JButton manageDeliveriesButton;
     private SchedulerService schedulerService;
 
     public SchedulerUI() {
@@ -48,6 +51,15 @@ public class SchedulerUI extends JFrame {
         scheduledDeliveriesModel = new DefaultTableModel(
                 new Object[] { "ID", "Customer ID", "Delivery Date", "Address", "Driver ID" }, 0);
         scheduledDeliveriesTable = new JTable(scheduledDeliveriesModel);
+
+        // Manage Deliveries Button
+        manageDeliveriesButton = new JButton("Manage Deliveries");
+        manageDeliveriesButton.setEnabled(false); // Initially disabled
+        manageDeliveriesButton.addActionListener(e -> manageDeliveries());
+
+        scheduledDeliveriesTable.getSelectionModel().addListSelectionListener(e -> {
+            manageDeliveriesButton.setEnabled(scheduledDeliveriesTable.getSelectedRowCount() > 0);
+        });
 
         // Delivery Assignment components
         JPanel assignDriverPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -90,7 +102,9 @@ public class SchedulerUI extends JFrame {
 
         JPanel scheduledDeliveriesPanel = new JPanel(new BorderLayout());
         scheduledDeliveriesPanel.add(new JScrollPane(scheduledDeliveriesTable), BorderLayout.CENTER);
-
+        JPanel scheduledActionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        scheduledActionsPanel.add(manageDeliveriesButton);
+        scheduledDeliveriesPanel.add(scheduledActionsPanel, BorderLayout.SOUTH);
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.add(reportPanel, BorderLayout.NORTH);
         // Add tabs to the tabbed pane
@@ -159,8 +173,8 @@ public class SchedulerUI extends JFrame {
         if (selectedRow >= 0 && selectedDriver != null) {
             int deliveryId = (int) pendingDeliveriesTable.getValueAt(selectedRow, 0);
 
-            boolean updated = schedulerService.assignDriverToDelivery(deliveryId, selectedDriver.getId());
-            if (updated) {
+            Delivery updatedDelivery = schedulerService.assignDriverToDelivery(deliveryId, selectedDriver.getId());
+            if (updatedDelivery != null) {
                 GuiUtil.showInfoMessage(this, "Driver assigned successfully");
                 loadDeliveries(); // Refresh tables
             } else {
@@ -187,10 +201,45 @@ public class SchedulerUI extends JFrame {
         }
     }
 
+    private void manageDeliveries() {
+        int[] selectedRows = scheduledDeliveriesTable.getSelectedRows();
+        if (selectedRows.length == 0) {
+            GuiUtil.showErrorMessage(this, "Please select at least one delivery to manage");
+            return;
+        }
+
+        List<Delivery> selectedDeliveries = new ArrayList<>();
+        int driverId = 0;
+        for (int row : selectedRows) {
+            int deliveryId = (int) scheduledDeliveriesTable.getValueAt(row, 0);
+            Delivery delivery = schedulerService.getDeliveryById(deliveryId);
+            if (delivery != null) {
+                if (driverId == 0) {
+                    driverId = delivery.getDriverId();
+                } else if (driverId != delivery.getDriverId()) {
+                    GuiUtil.showErrorMessage(this, "Please select deliveries for the same driver.");
+                    return;
+                }
+                selectedDeliveries.add(delivery);
+            }
+        }
+        Driver driver = (Driver) schedulerService.getUserById(driverId);
+
+        if (driver != null) {
+            ReorderDeliveriesUI reorderDeliveriesUI = new ReorderDeliveriesUI(selectedDeliveries, driver,
+                    schedulerService);
+            reorderDeliveriesUI.setVisible(true);
+        } else {
+            GuiUtil.showErrorMessage(this, "Error getting the driver");
+        }
+
+    }
+
     public static void main(String[] args) {
         // Launch the SchedulerUI
         java.awt.EventQueue.invokeLater(() -> {
             new SchedulerUI();
         });
     }
+
 }
