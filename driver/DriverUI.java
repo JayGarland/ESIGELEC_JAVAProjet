@@ -1,5 +1,6 @@
 package driver;
 
+import authentication.AuthService;
 import authentication.Driver;
 import data.Mission;
 import service.DriverService;
@@ -121,10 +122,16 @@ public class DriverUI extends JFrame {
 
     public static void main(String[] args) {
         // Create a dummy Driver object for testing
-        Driver dummyDriver = new Driver("testdriver@example.com", "password", "123-456-7890", "ABC-123", 5000);
-        // Launch the DriverUI with the dummy driver
-        java.awt.EventQueue.invokeLater(() -> {
-            new DriverUI(dummyDriver);
-        });
+        Driver dummyDriver = new Driver("driver@example.com", "password789", "111-222-3333", "ABC-123", 5000);
+        AuthService authService = new AuthService();
+        if (!authService.register(dummyDriver)) {
+            Driver loggedInDriver = (Driver) authService.login(dummyDriver.getEmail(), dummyDriver.getPassword());
+            // Launch the DriverUI with the persisted driver
+            java.awt.EventQueue.invokeLater(() -> {
+                new DriverUI(loggedInDriver);
+            });
+        } else {
+            System.err.println("Error registering driver");
+        }
     }
 }
