@@ -656,4 +656,25 @@ public class DatabaseManager {
         product.setUpdatedAt(updatedAt);
         return product;
     }
+    public List<Mission> getMissionsByDeliveryId(int deliveryId) {
+        List<Mission> missions = new ArrayList<>();
+        String sql = "SELECT m.*, u.id as user_id, u.email, u.password, u.phone_number, u.role, u.truck_reg_number, u.truck_capacity_kg "
+                + "FROM missions m "
+
+                + "INNER JOIN deliveries d ON m.id = d.mission_id "
+                + "WHERE d.id = ?";
+        try (Connection conn = getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, deliveryId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                Mission mission = createMissionFromResultSet(rs);
+                missions.add(mission);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error getting mission by delivery id");
+        }
+        return missions;
+    }
 }
