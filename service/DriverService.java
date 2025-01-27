@@ -1,7 +1,10 @@
 package service;
 
 import data.DatabaseManager;
+import data.Delivery;
 import data.Mission;
+import data.ProductItem;
+
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -17,6 +20,10 @@ public class DriverService {
         return databaseManager.getMissionsByDriverId(driverId, status);
     }
 
+    public Mission getMissionById(int driverId, int missionId) {
+        return databaseManager.getMissionById(missionId);
+    }
+
     public boolean markMissionAsCompleted(int driverId, int missionId) {
         Mission mission = getMissionById(driverId, missionId);
         if (mission != null) {
@@ -27,23 +34,17 @@ public class DriverService {
         return false;
     }
 
-    private Mission getMissionById(int driverId, int missionId) {
-        List<Mission> assignedMissions = databaseManager.getMissionsByDriverId(driverId, "Assigned");
-        List<Mission> completedMissions = databaseManager.getMissionsByDriverId(driverId, "Completed");
-        if (assignedMissions != null) {
-            for (Mission mission : assignedMissions) {
-                if (mission.getId() == missionId) {
-                    return mission;
-                }
-            }
-        }
-        if (completedMissions != null) {
-            for (Mission mission : completedMissions) {
-                if (mission.getId() == missionId) {
-                    return mission;
-                }
-            }
+    public Delivery getDeliveryByAddress(String address) {
+        List<Delivery> deliveries = databaseManager.getAllDeliveries();
+        if (deliveries != null) {
+            return deliveries.stream().filter(delivery -> delivery.getDeliveryAddress().equals(address)).findFirst()
+                    .orElse(null);
         }
         return null;
     }
+
+    public List<ProductItem> getDeliveryItems(int deliveryId) {
+        return databaseManager.getDeliveryItems(deliveryId);
+    }
+
 }

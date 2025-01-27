@@ -53,21 +53,47 @@ public class DriverUI extends JFrame {
             }
         });
 
+        // Create Route Details button
+        JButton assignedRouteDetailsButton = new JButton("Route Details");
+        assignedRouteDetailsButton.addActionListener(e -> showRouteDetails(assignedMissionsTable));
+
+        JButton completedRouteDetailsButton = new JButton("Route Details");
+        completedRouteDetailsButton.addActionListener(e -> showRouteDetails(completedMissionsTable));
+
         // Create panels for each tab
         JPanel assignedMissionsPanel = new JPanel(new BorderLayout());
         assignedMissionsPanel.add(new JScrollPane(assignedMissionsTable), BorderLayout.CENTER);
         JPanel assignedActionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         assignedActionsPanel.add(markAsCompleteButton);
+        assignedActionsPanel.add(assignedRouteDetailsButton); // Add route details button
         assignedMissionsPanel.add(assignedActionsPanel, BorderLayout.SOUTH);
 
         JPanel completedMissionsPanel = new JPanel(new BorderLayout());
         completedMissionsPanel.add(new JScrollPane(completedMissionsTable), BorderLayout.CENTER);
+        JPanel completedActionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        completedActionsPanel.add(completedRouteDetailsButton); // Add route details button
+        completedMissionsPanel.add(completedActionsPanel, BorderLayout.SOUTH);
 
         // Add tabs to the tabbed pane
         tabbedPane.addTab("Assigned Missions", assignedMissionsPanel);
         tabbedPane.addTab("Completed Missions", completedMissionsPanel);
 
         add(tabbedPane);
+    }
+
+    private void showRouteDetails(JTable table) {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow >= 0) {
+            int missionId = (int) table.getValueAt(selectedRow, 0);
+            Mission mission = driverService.getMissionById(driver.getId(), missionId);
+            if (mission != null) {
+                new RouteDetailsUI(mission, driver).setVisible(true);
+            } else {
+                GuiUtil.showErrorMessage(this, "Error fetching mission details.");
+            }
+        } else {
+            GuiUtil.showErrorMessage(this, "Please select a mission to view details.");
+        }
     }
 
     private void loadMissions() {
