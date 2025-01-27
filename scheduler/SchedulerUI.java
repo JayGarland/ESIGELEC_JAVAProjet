@@ -15,7 +15,6 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.DateFormatter;
 
-//TODO: after scheduled deliveries to mission, the scheduled ones will disappear
 public class SchedulerUI extends JFrame {
 
     private JTabbedPane tabbedPane;
@@ -134,7 +133,7 @@ public class SchedulerUI extends JFrame {
         }
     }
 
-    private void loadPendingDeliveries() {
+    public void loadPendingDeliveries() {
         pendingDeliveriesModel.setRowCount(0); // Clear the table
         List<Delivery> pendingDeliveries = schedulerService.getPendingDeliveries();
         if (pendingDeliveries != null) {
@@ -150,7 +149,7 @@ public class SchedulerUI extends JFrame {
         }
     }
 
-    private void loadScheduledDeliveries() {
+    public void loadScheduledDeliveries() {
         scheduledDeliveriesModel.setRowCount(0); // Clear the table
         List<Delivery> scheduledDeliveries = schedulerService.getScheduledDeliveries();
         if (scheduledDeliveries != null) {

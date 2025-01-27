@@ -39,12 +39,13 @@ public class SchedulerService {
         return null;
     }
 
-    // Method to get all deliveries that have been assigned to a driver
+    // Method to get all deliveries that have been assigned to a driver and are not part of any mission yet
     public List<Delivery> getScheduledDeliveries() {
         List<Delivery> allDeliveries = databaseManager.getAllDeliveries();
         if (allDeliveries != null) {
             return allDeliveries.stream()
-                    .filter(delivery -> delivery.getDriverId() > 0)
+                    .filter(delivery -> delivery.getDriverId() > 0
+                            && databaseManager.getMissionsByDeliveryId(delivery.getId()).isEmpty())
                     .toList();
         }
         return null;

@@ -113,6 +113,9 @@ public class ReorderDeliveriesUI extends JFrame {
         Mission mission = schedulerService.createMission(deliveries, driver);
 
         if (mission != null) {
+            SchedulerUI schedulerUI = new SchedulerUI();
+            schedulerUI.loadScheduledDeliveries();
+            schedulerUI.loadPendingDeliveries();
             GuiUtil.showInfoMessage(this, "Mission generated successfully");
             dispose();
         } else {
