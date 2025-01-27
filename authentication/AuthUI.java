@@ -1,5 +1,7 @@
 package authentication;
 
+import driver.DriverUI;
+import service.AuthService;
 import utils.GuiUtil;
 
 import javax.swing.*;
@@ -91,9 +93,16 @@ public class AuthUI extends JFrame {
         String email = emailField.getText();
         String password = new String(passwordField.getPassword());
         User user = authService.login(email, password);
+
         if (user != null) {
-            openDashboard(user);
-            dispose();
+            User loggedInUser = authService.getUserById(user.getId());
+
+            if (loggedInUser != null) {
+                openDashboard(loggedInUser);
+                dispose();
+            } else {
+                GuiUtil.showErrorMessage(this, "Error loading user information");
+            }
         } else {
             GuiUtil.showErrorMessage(this, "Invalid login credentials");
         }
@@ -105,7 +114,13 @@ public class AuthUI extends JFrame {
 
     private void openDashboard(User user) {
         if (user instanceof Driver) {
-            new driver.DriverUI((Driver) user);
+            new DriverUI((Driver) user);
+        }
+        if (user instanceof Customer) {
+            new customer.CustomerUI((Customer) user);
+        }
+        if (user instanceof Scheduler) {
+            new scheduler.SchedulerUI();
         }
     }
 

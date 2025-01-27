@@ -3,6 +3,9 @@ package authentication;
 import utils.GuiUtil;
 
 import javax.swing.*;
+
+import service.AuthService;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;

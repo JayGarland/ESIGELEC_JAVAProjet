@@ -1,8 +1,8 @@
 package driver;
 
-import authentication.AuthService;
 import authentication.Driver;
 import data.Mission;
+import service.AuthService;
 import service.DriverService;
 import utils.GuiUtil;
 
@@ -12,6 +12,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
+import modifyaccount.DriverModifyAccountUI;
 
 public class DriverUI extends JFrame {
 
@@ -77,6 +78,7 @@ public class DriverUI extends JFrame {
         // Add tabs to the tabbed pane
         tabbedPane.addTab("Assigned Missions", assignedMissionsPanel);
         tabbedPane.addTab("Completed Missions", completedMissionsPanel);
+        tabbedPane.addTab("Modify Account", new DriverModifyAccountUI(driver));
 
         add(tabbedPane);
     }

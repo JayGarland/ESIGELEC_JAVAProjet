@@ -656,16 +656,23 @@ public class DatabaseManager {
         product.setUpdatedAt(updatedAt);
         return product;
     }
-    public List<Mission> getMissionsByDeliveryId(int deliveryId) {
-        List<Mission> missions = new ArrayList<>();
-        String sql = "SELECT m.*, u.id as user_id, u.email, u.password, u.phone_number, u.role, u.truck_reg_number, u.truck_capacity_kg "
-                + "FROM missions m "
 
-                + "INNER JOIN deliveries d ON m.id = d.mission_id "
-                + "WHERE d.id = ?";
-        try (Connection conn = getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, deliveryId);
+        public List<Mission> getMissionsByDeliveryId(int deliveryId) {
+        List<Mission> missions = new ArrayList<>();
+           String sql = "SELECT m.*, u.id as user_id, u.email, u.password, u.phone_number, u.role, u.truck_reg_number, u.truck_capacity_kg " +
+            "FROM missions m " +
+            "INNER JOIN users u ON m.driver_id = u.id " +
+            "WHERE FIND_IN_SET(?, m.route)"; // Use FIND_IN_SET to search for the delivery address in the route string
+           try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+             // Replace the placeholder with the delivery address using the delivery ID
+             Delivery delivery = getDeliveryById(deliveryId);
+             if (delivery == null) {
+                  return missions;  // Return an empty list if no delivery is found
+             }
+
+            pstmt.setString(1, delivery.getDeliveryAddress());
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 Mission mission = createMissionFromResultSet(rs);
@@ -673,7 +680,7 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            System.err.println("Error getting mission by delivery id");
+            System.err.println("Error getting missions by delivery id: " + deliveryId);
         }
         return missions;
     }

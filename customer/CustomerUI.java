@@ -1,10 +1,11 @@
 package customer;
 
-import authentication.AuthService;
+import service.AuthService;
 import authentication.Customer;
 import data.Category;
 import data.Product;
 import data.ProductItem;
+import modifyaccount.CustomerModifyAccountUI;
 import service.CustomerService;
 import utils.GuiUtil;
 import java.awt.*;
@@ -24,7 +25,6 @@ public class CustomerUI extends JFrame {
     private JTabbedPane tabbedPane;
     private JTable productsTable;
     private DefaultTableModel productsModel;
-    private JTextField deliveryAddressField;
     private JFormattedTextField deliveryDateField;
     private JSpinner quantitySpinner;
     private Customer customer;
@@ -60,11 +60,8 @@ public class CustomerUI extends JFrame {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JLabel deliveryAddressLabel = new JLabel("Delivery Address:");
-        deliveryAddressField = new JTextField(20);
         JLabel deliveryDateLabel = new JLabel("Delivery Date (yyyy-MM-dd):");
         deliveryDateField = new JFormattedTextField(createDateFormatter());
-
         deliveryDateField.setValue(new Date());
 
         JLabel quantityLabel = new JLabel("Quantity (Kg):");
@@ -85,17 +82,12 @@ public class CustomerUI extends JFrame {
 
         gbc.gridx = 0;
         gbc.gridy = 0;
-        deliveryDetailsPanel.add(deliveryAddressLabel, gbc);
-        gbc.gridx = 1;
-        deliveryDetailsPanel.add(deliveryAddressField, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy = 1;
         deliveryDetailsPanel.add(deliveryDateLabel, gbc);
         gbc.gridx = 1;
         deliveryDetailsPanel.add(deliveryDateField, gbc);
+
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 1;
         deliveryDetailsPanel.add(quantityLabel, gbc);
         gbc.gridx = 1;
         deliveryDetailsPanel.add(quantitySpinner, gbc);
@@ -106,6 +98,7 @@ public class CustomerUI extends JFrame {
         mainPanel.add(actionsPanel, BorderLayout.SOUTH);
 
         tabbedPane.addTab("Products", mainPanel);
+        tabbedPane.addTab("Modify Account", new CustomerModifyAccountUI(customer));
         add(tabbedPane);
 
         // Action Listener
@@ -204,17 +197,21 @@ public class CustomerUI extends JFrame {
     }
 
     private void createDeliveryOrder() {
-        String deliveryAddress = deliveryAddressField.getText();
         Date deliveryDate = (Date) deliveryDateField.getValue();
 
-        if (deliveryAddress.isEmpty() || deliveryDate == null || cart.isEmpty()) {
+        if (customer.getAddress() == null || customer.getAddress().isEmpty()) {
+            GuiUtil.showErrorMessage(this, "Please set your delivery address in the 'Modify Account' tab.");
+            return;
+        }
+
+        if (deliveryDate == null || cart.isEmpty()) {
             GuiUtil.showErrorMessage(this, "Please fill all the fields and add products to the cart.");
             return;
         }
 
         try {
             customerService.createDelivery(
-                    customer, cart, deliveryDate, deliveryAddress, 0);
+                    customer, cart, deliveryDate, customer.getAddress(), 0);
             GuiUtil.showInfoMessage(this, "Delivery order created successfully!");
             cart.clear();
             totalWeight = 0.0;

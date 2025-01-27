@@ -68,4 +68,9 @@ public class CustomerService {
         }
         return false;
     }
+
+    public boolean updateUser(User user) {
+        return databaseManager.updateUser(user);
+    }
+
 }
